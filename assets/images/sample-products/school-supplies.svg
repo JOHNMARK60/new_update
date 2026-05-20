@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360" viewBox="0 0 480 360" role="img" aria-label="Classic notebook product image">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#f5fbf8"/>
+      <stop offset="1" stop-color="#e8f5ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="480" height="360" rx="34" fill="url(#bg)"/>
+  <circle cx="356" cy="88" r="56" fill="#d8f1e2"/>
+  <circle cx="118" cy="276" r="50" fill="#d8f1e2"/>
+  <rect x="148" y="58" width="184" height="246" rx="20" fill="#ffffff" stroke="#0b162f" stroke-width="6"/>
+  <rect x="148" y="58" width="48" height="246" rx="20" fill="#049a3a"/>
+  <path d="M196 60v242" stroke="#0b162f" stroke-width="5"/>
+  <path d="M219 120h82M219 154h82M219 188h82M219 222h58" stroke="#c7d7e5" stroke-width="8" stroke-linecap="round"/>
+  <text x="259" y="94" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="900" fill="#0b162f">KANTO</text>
+  <text x="259" y="262" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="800" fill="#049a3a">80 LEAVES</text>
+  <path d="M346 210l49 49-18 18-49-49z" fill="#ffd45a" stroke="#0b162f" stroke-width="5"/>
+  <path d="M326 229l20-19 31 31-20 19z" fill="#ffffff" stroke="#0b162f" stroke-width="5"/>
+  <path d="M393 259l14 28-30-10z" fill="#0b162f"/>
+</svg>

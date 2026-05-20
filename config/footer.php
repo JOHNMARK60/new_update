@@ -1,5 +1,5 @@
 <footer class="footer mt-8">
-    &copy; <?php echo date('Y'); ?> Cashiering Inventory System
+    &copy; <?php echo date('Y'); ?> KANTO GOODS
 </footer>
 </body>
 </html>

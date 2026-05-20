@@ -12,12 +12,17 @@ $pageTitle = 'Role Separation | Admin';
     <?php include __DIR__ . '/admin_sidebar.php'; ?>
 
     <main class="admin-main">
-        <header class="page-topbar">
-            <div>
-                <h1 class="page-title">Role Separation</h1>
-                <p class="page-subtitle">Admin and cashier access are routed to different workspaces.</p>
-            </div>
-        </header>
+        <?php
+        $appHeaderRole = 'admin';
+        $appHeaderRoleLabel = 'Administrator';
+        $appHeaderTitle = 'Role Separation';
+        $appHeaderSubtitle = 'Admin and cashier access are routed to different workspaces.';
+        $appHeaderIcon = 'fa-shield-halved';
+        $appHeaderHome = 'admin_dashboard.php';
+        $appHeaderShowSearch = false;
+        $appHeaderActions = [];
+        include __DIR__ . '/../config/app_header.php';
+        ?>
 
         <section class="grid gap-5 lg:grid-cols-2">
             <article class="panel p-6">
@@ -29,7 +34,7 @@ $pageTitle = 'Role Separation | Admin';
             <article class="panel p-6">
                 <div class="card-icon green"><i class="fa-solid fa-cash-register"></i></div>
                 <h2 class="mt-5 text-xl font-extrabold text-ink">Cashier</h2>
-                <p class="mt-2 text-sm leading-6 text-slate-600">Access to dashboard, point of sale, product viewing, stock availability, and personal reports.</p>
+                <p class="mt-2 text-sm leading-6 text-slate-600">Access to dashboard, point of sale, receipts, stock availability, personal reports, and own daily closing.</p>
             </article>
         </section>
     </main>

@@ -5,6 +5,7 @@ require_role('admin');
 $id = (int) ($_GET['id'] ?? $_POST['id'] ?? 0);
 
 if ($id <= 0) {
+    swal_flash('success', 'Cashier Account Updated', 'Cashier account updated successfully.');
     header('Location: admin_users.php');
     exit();
 }
@@ -18,31 +19,41 @@ if (isset($_POST['update_user'])) {
 
     if ($new_password !== '') {
         $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
-        $stmt = mysqli_prepare(
-            $conn,
-            'UPDATE users SET first_name = ?, last_name = ?, email = ?, phone = ?, password = ? WHERE id = ? AND role = "cashier"'
+        $stmt = $pdo->prepare(
+            'UPDATE users
+             SET first_name = :first_name, last_name = :last_name, email = :email, phone = :phone, password = :password
+             WHERE id = :id AND role = "cashier"'
         );
-        mysqli_stmt_bind_param($stmt, 'sssssi', $first_name, $last_name, $email, $phone, $hashed_password, $id);
+        $stmt->execute([
+            'first_name' => $first_name,
+            'last_name' => $last_name,
+            'email' => $email,
+            'phone' => $phone,
+            'password' => $hashed_password,
+            'id' => $id,
+        ]);
     } else {
-        $stmt = mysqli_prepare(
-            $conn,
-            'UPDATE users SET first_name = ?, last_name = ?, email = ?, phone = ? WHERE id = ? AND role = "cashier"'
+        $stmt = $pdo->prepare(
+            'UPDATE users
+             SET first_name = :first_name, last_name = :last_name, email = :email, phone = :phone
+             WHERE id = :id AND role = "cashier"'
         );
-        mysqli_stmt_bind_param($stmt, 'ssssi', $first_name, $last_name, $email, $phone, $id);
+        $stmt->execute([
+            'first_name' => $first_name,
+            'last_name' => $last_name,
+            'email' => $email,
+            'phone' => $phone,
+            'id' => $id,
+        ]);
     }
-
-    mysqli_stmt_execute($stmt);
-    mysqli_stmt_close($stmt);
 
     header('Location: admin_users.php');
     exit();
 }
 
-$stmt = mysqli_prepare($conn, "SELECT * FROM users WHERE id = ? AND role = 'cashier' LIMIT 1");
-mysqli_stmt_bind_param($stmt, 'i', $id);
-mysqli_stmt_execute($stmt);
-$user = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
-mysqli_stmt_close($stmt);
+$stmt = $pdo->prepare("SELECT * FROM users WHERE id = :id AND role = 'cashier' LIMIT 1");
+$stmt->execute(['id' => $id]);
+$user = $stmt->fetch();
 
 if (!$user) {
     header('Location: admin_users.php');
@@ -60,12 +71,23 @@ $pageTitle = 'Edit Cashier | Admin';
     <?php include __DIR__ . '/admin_sidebar.php'; ?>
 
     <main class="admin-main">
-        <header class="page-topbar">
-            <div>
-                <h1 class="page-title">Edit Cashier</h1>
-                <p class="page-subtitle"><?php echo e($user['first_name'] . ' ' . $user['last_name']); ?></p>
-            </div>
-        </header>
+        <?php
+        $appHeaderRole = 'admin';
+        $appHeaderRoleLabel = 'Administrator';
+        $appHeaderTitle = 'Edit Cashier';
+        $appHeaderSubtitle = $user['first_name'] . ' ' . $user['last_name'];
+        $appHeaderIcon = 'fa-user-pen';
+        $appHeaderHome = 'admin_dashboard.php';
+        $appHeaderActions = [
+            [
+                'href' => 'admin_users.php',
+                'label' => 'Back',
+                'icon' => 'fa-arrow-left',
+                'class' => 'btn btn-secondary',
+            ],
+        ];
+        include __DIR__ . '/../config/app_header.php';
+        ?>
 
         <section class="panel max-w-3xl p-6">
             <form method="POST" class="grid gap-5">

@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/auth.php';
-$pageTitle = 'Forgot Password | Cashiering Inventory System';
+$pageTitle = 'Forgot Password | KANTO GOODS';
 ?>
 <!DOCTYPE html>
 <html lang="en">

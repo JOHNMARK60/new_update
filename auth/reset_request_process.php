@@ -12,7 +12,8 @@ $stmt->execute([$email]);
 $user = $stmt->fetch();
 
 if (!$user) {
-    echo "<script>alert('Email address is not registered.'); window.location='forgot_password.php';</script>";
+    swal_flash('error', 'Email not found.', 'Email address is not registered.');
+    header('Location: forgot_password.php');
     exit();
 }
 
@@ -23,6 +24,7 @@ $stmt = $pdo->prepare('UPDATE users SET reset_token = ?, token_expires_at = ? WH
 $stmt->execute([$token, $expiry, $email]);
 
 $reset_link = app_url('auth/reset_password.php?token=' . $token);
+swal_flash('success', 'Reset Request Sent', 'A reset link has been generated for testing mode.');
 $pageTitle = 'Reset Link Generated';
 ?>
 <!DOCTYPE html>

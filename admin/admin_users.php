@@ -4,18 +4,25 @@ require_role('admin');
 
 function role_label($role)
 {
-    return $role === 'admin' ? 'Administrator' : 'User';
+    return $role === 'admin' ? 'Administrator' : 'Cashier';
 }
 
-function email_exists($conn, $email, $except_id = 0)
+function email_exists(PDO $pdo, $email, $except_id = 0)
 {
-    $stmt = mysqli_prepare($conn, 'SELECT id FROM users WHERE email = ? AND id <> ? LIMIT 1');
-    mysqli_stmt_bind_param($stmt, 'si', $email, $except_id);
-    mysqli_stmt_execute($stmt);
-    $exists = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
-    mysqli_stmt_close($stmt);
+    $stmt = $pdo->prepare('SELECT id FROM users WHERE email = :email AND id <> :except_id LIMIT 1');
+    $stmt->execute(['email' => $email, 'except_id' => (int) $except_id]);
+    $exists = $stmt->fetch();
 
     return (bool) $exists;
+}
+
+function role_id_for(PDO $pdo, string $role): ?int
+{
+    $stmt = $pdo->prepare('SELECT id FROM roles WHERE name = :role LIMIT 1');
+    $stmt->execute(['role' => $role]);
+    $roleId = $stmt->fetchColumn();
+
+    return $roleId !== false ? (int) $roleId : null;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -31,23 +38,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $confirm = $_POST['confirm_password'] ?? '';
 
         if ($password !== $confirm) {
-            echo "<script>alert('Password does not match.'); window.location='admin_users.php';</script>";
+            swal_flash('warning', 'Passwords do not match.', 'Please re-enter the cashier password.');
+            header('Location: admin_users.php');
             exit();
         }
 
-        if (email_exists($conn, $email)) {
-            echo "<script>alert('Email already exists.'); window.location='admin_users.php';</script>";
+        if (email_exists($pdo, $email)) {
+            swal_flash('error', 'Username or email already exists.', 'Use a different cashier email address.');
+            header('Location: admin_users.php');
             exit();
         }
 
         $hash = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = mysqli_prepare(
-            $conn,
-            'INSERT INTO users (first_name, last_name, email, phone, password, role) VALUES (?, ?, ?, ?, ?, ?)'
+        $roleId = role_id_for($pdo, $role);
+        $stmt = $pdo->prepare(
+            'INSERT INTO users (first_name, last_name, email, phone, password, role, role_id)
+             VALUES (:first_name, :last_name, :email, :phone, :password, :role, :role_id)'
         );
-        mysqli_stmt_bind_param($stmt, 'ssssss', $first_name, $last_name, $email, $phone, $hash, $role);
-        mysqli_stmt_execute($stmt);
-        mysqli_stmt_close($stmt);
+        $stmt->execute([
+            'first_name' => $first_name,
+            'last_name' => $last_name,
+            'email' => $email,
+            'phone' => $phone,
+            'password' => $hash,
+            'role' => $role,
+            'role_id' => $roleId,
+        ]);
+        swal_flash('success', 'Cashier Account Created', 'Cashier account created successfully.');
     }
 
     if ($action === 'update') {
@@ -59,8 +76,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $role = ($_POST['role'] ?? 'cashier') === 'admin' ? 'admin' : 'cashier';
         $new_password = $_POST['new_password'] ?? '';
 
-        if (email_exists($conn, $email, $id)) {
-            echo "<script>alert('Email already exists.'); window.location='admin_users.php';</script>";
+        if (email_exists($pdo, $email, $id)) {
+            swal_flash('error', 'Username or email already exists.', 'Use a different cashier email address.');
+            header('Location: admin_users.php');
             exit();
         }
 
@@ -68,33 +86,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $role = 'admin';
         }
 
+        $roleId = role_id_for($pdo, $role);
+
         if ($new_password !== '') {
             $hash = password_hash($new_password, PASSWORD_DEFAULT);
-            $stmt = mysqli_prepare(
-                $conn,
-                'UPDATE users SET first_name = ?, last_name = ?, email = ?, phone = ?, role = ?, password = ? WHERE id = ?'
+            $stmt = $pdo->prepare(
+                'UPDATE users
+                 SET first_name = :first_name, last_name = :last_name, email = :email, phone = :phone, role = :role, role_id = :role_id, password = :password
+                 WHERE id = :id'
             );
-            mysqli_stmt_bind_param($stmt, 'ssssssi', $first_name, $last_name, $email, $phone, $role, $hash, $id);
+            $stmt->execute([
+                'first_name' => $first_name,
+                'last_name' => $last_name,
+                'email' => $email,
+                'phone' => $phone,
+                'role' => $role,
+                'role_id' => $roleId,
+                'password' => $hash,
+                'id' => $id,
+            ]);
         } else {
-            $stmt = mysqli_prepare(
-                $conn,
-                'UPDATE users SET first_name = ?, last_name = ?, email = ?, phone = ?, role = ? WHERE id = ?'
+            $stmt = $pdo->prepare(
+                'UPDATE users
+                 SET first_name = :first_name, last_name = :last_name, email = :email, phone = :phone, role = :role, role_id = :role_id
+                 WHERE id = :id'
             );
-            mysqli_stmt_bind_param($stmt, 'sssssi', $first_name, $last_name, $email, $phone, $role, $id);
+            $stmt->execute([
+                'first_name' => $first_name,
+                'last_name' => $last_name,
+                'email' => $email,
+                'phone' => $phone,
+                'role' => $role,
+                'role_id' => $roleId,
+                'id' => $id,
+            ]);
         }
-
-        mysqli_stmt_execute($stmt);
-        mysqli_stmt_close($stmt);
+        swal_flash('success', 'Cashier Account Updated', 'Cashier account updated successfully.');
     }
 
     if ($action === 'delete') {
         $id = (int) ($_POST['id'] ?? 0);
 
         if ($id !== (int) $_SESSION['user_id']) {
-            $stmt = mysqli_prepare($conn, 'DELETE FROM users WHERE id = ?');
-            mysqli_stmt_bind_param($stmt, 'i', $id);
-            mysqli_stmt_execute($stmt);
-            mysqli_stmt_close($stmt);
+            $stmt = $pdo->prepare('DELETE FROM users WHERE id = :id');
+            $stmt->execute(['id' => $id]);
+            swal_flash('success', 'Cashier Account Deleted', 'Cashier account has been removed.');
         }
     }
 
@@ -102,12 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit();
 }
 
-$result = mysqli_query($conn, "SELECT * FROM users ORDER BY role ASC, id ASC");
-$users = [];
-
-while ($row = mysqli_fetch_assoc($result)) {
-    $users[] = $row;
-}
+$users = $pdo->query("SELECT * FROM users ORDER BY role ASC, id ASC")->fetchAll();
 
 $pageTitle = 'User Management | Admin';
 ?>
@@ -120,16 +151,24 @@ $pageTitle = 'User Management | Admin';
     <?php include __DIR__ . '/admin_sidebar.php'; ?>
 
     <main class="admin-main">
-        <header class="page-topbar">
-            <div>
-                <h1 class="page-title">Users</h1>
-                <p class="page-subtitle">Manage administrator and user accounts.</p>
-            </div>
-            <button type="button" class="btn" data-modal-open="addUserModal">
-                <i class="fa-solid fa-user-plus"></i>
-                Add Account
-            </button>
-        </header>
+        <?php
+        $appHeaderRole = 'admin';
+        $appHeaderRoleLabel = 'Administrator';
+        $appHeaderTitle = 'Users';
+        $appHeaderSubtitle = 'Manage administrator and cashier accounts.';
+        $appHeaderIcon = 'fa-users-gear';
+        $appHeaderHome = 'admin_dashboard.php';
+        $appHeaderActions = [
+            [
+                'tag' => 'button',
+                'label' => 'Add Account',
+                'icon' => 'fa-user-plus',
+                'class' => 'btn',
+                'attributes' => ['data-modal-open' => 'addUserModal'],
+            ],
+        ];
+        include __DIR__ . '/../config/app_header.php';
+        ?>
 
         <section class="panel overflow-hidden">
             <div class="border-b border-slate-200 p-5">
@@ -215,7 +254,7 @@ $pageTitle = 'User Management | Admin';
                 <div class="form-group">
                     <label>Role</label>
                     <select name="role" required>
-                        <option value="cashier">User</option>
+                        <option value="cashier">Cashier</option>
                         <option value="admin">Administrator</option>
                     </select>
                 </div>
@@ -294,7 +333,7 @@ $pageTitle = 'User Management | Admin';
                             <label>Role</label>
                             <select name="role" <?php echo $is_self ? 'disabled' : ''; ?>>
                                 <option value="admin" <?php echo $row['role'] === 'admin' ? 'selected' : ''; ?>>Administrator</option>
-                                <option value="cashier" <?php echo $row['role'] !== 'admin' ? 'selected' : ''; ?>>User</option>
+                                <option value="cashier" <?php echo $row['role'] !== 'admin' ? 'selected' : ''; ?>>Cashier</option>
                             </select>
                             <?php if ($is_self): ?>
                                 <input type="hidden" name="role" value="admin">
@@ -326,7 +365,14 @@ $pageTitle = 'User Management | Admin';
                         <p class="text-slate-600">Delete <strong><?php echo e($row['first_name'] . ' ' . $row['last_name']); ?></strong>?</p>
                         <div class="modal-actions">
                             <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
-                            <button type="submit" class="btn btn-danger">Delete</button>
+                            <button
+                                type="submit"
+                                class="btn btn-danger"
+                                data-swal-confirm="Delete or deactivate cashier?"
+                                data-swal-text="This action cannot be undone."
+                                data-swal-confirm-text="Yes, delete">
+                                Delete
+                            </button>
                         </div>
                     </form>
                 </div>

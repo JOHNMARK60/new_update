@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/auth.php';
-$pageTitle = $pageTitle ?? 'Cashiering Inventory System';
+$pageTitle = $pageTitle ?? 'KANTO GOODS';
 ?>
 <!DOCTYPE html>
 <html lang="en">

@@ -1,9 +1,9 @@
 <?php
 require_once __DIR__ . '/db.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+use App\Services\Auth;
+
+Auth::startSession();
 
 function e($value)
 {
@@ -12,7 +12,68 @@ function e($value)
 
 function money($value)
 {
-    return '&#8369; ' . number_format((float) $value, 2);
+    return '&#8369;' . number_format((float) $value, 2);
+}
+
+function swal_flash(string $icon, string $title, string $text = '', array $options = []): void
+{
+    $_SESSION['swal'] = array_merge([
+        'icon' => $icon,
+        'title' => $title,
+        'text' => $text,
+    ], $options);
+}
+
+function swal_toast(string $icon, string $title, array $options = []): void
+{
+    $_SESSION['swal'] = array_merge([
+        'toast' => true,
+        'icon' => $icon,
+        'title' => $title,
+    ], $options);
+}
+
+function take_swal_flash(): ?array
+{
+    if (empty($_SESSION['swal']) || !is_array($_SESSION['swal'])) {
+        return null;
+    }
+
+    $flash = $_SESSION['swal'];
+    unset($_SESSION['swal']);
+
+    return $flash;
+}
+
+function wants_json(): bool
+{
+    $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+    $requestedWith = $_SERVER['HTTP_X_REQUESTED_WITH'] ?? '';
+
+    return stripos($accept, 'application/json') !== false
+        || strtolower($requestedWith) === 'xmlhttprequest'
+        || isset($_POST['ajax']);
+}
+
+function json_response(array $payload, int $statusCode = 200): never
+{
+    http_response_code($statusCode);
+    header('Content-Type: application/json');
+    echo json_encode($payload);
+    exit();
+}
+
+function swal_response_or_redirect(array $payload, string $fallback): never
+{
+    if (wants_json()) {
+        json_response($payload, ($payload['status'] ?? '') === 'success' ? 200 : 422);
+    }
+
+    swal_flash($payload['icon'] ?? 'info', $payload['title'] ?? 'Notice', $payload['message'] ?? $payload['text'] ?? '', [
+        'redirect' => $payload['redirect'] ?? null,
+    ]);
+    header('Location: ' . $fallback);
+    exit();
 }
 
 function app_base_path()
@@ -26,7 +87,7 @@ function app_base_path()
 
     $section = basename($dir);
 
-    if (in_array($section, ['admin', 'user', 'auth', 'assets', 'config'], true)) {
+    if (in_array($section, ['admin', 'user', 'cashier', 'auth', 'assets', 'config'], true)) {
         $dir = rtrim(dirname($dir), '/');
     }
 
@@ -40,14 +101,15 @@ function app_url($path = '')
 
 function redirect_for_role($role)
 {
-    header('Location: ' . ($role === 'admin' ? app_url('admin/admin_dashboard.php') : app_url('user/user_dashboard.php')));
+    header('Location: ' . ($role === 'admin' ? app_url('admin/dashboard.php') : app_url('cashier/dashboard.php')));
     exit();
 }
 
 function require_login()
 {
     if (!isset($_SESSION['user_id'])) {
-        header('Location: ' . app_url('auth/login.php'));
+        swal_flash('error', 'Access denied', 'Please sign in to continue.');
+        header('Location: ' . app_url('index.php'));
         exit();
     }
 }
@@ -55,12 +117,14 @@ function require_login()
 function require_role($role)
 {
     if (!isset($_SESSION['user_id'])) {
-        header('Location: ' . ($role === 'admin' ? app_url('auth/admin_login.php') : app_url('auth/login.php')));
+        swal_flash('error', 'Session expired', 'Please sign in again.');
+        header('Location: ' . app_url('index.php'));
         exit();
     }
 
     if (!isset($_SESSION['role']) || $_SESSION['role'] !== $role) {
-        header('Location: ' . ($role === 'admin' ? app_url('auth/admin_login.php') : app_url('auth/login.php')));
+        swal_flash('error', 'Access denied', 'Access denied. You are not allowed to view this page.');
+        header('Location: ' . app_url('index.php'));
         exit();
     }
 }
@@ -76,10 +140,8 @@ function password_matches_and_upgrade($conn, array $user, $password)
 
     if ($matches && (hash_equals($stored, (string) $password) || password_needs_rehash($stored, PASSWORD_DEFAULT))) {
         $fresh_hash = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = mysqli_prepare($conn, 'UPDATE users SET password = ? WHERE id = ?');
-        mysqli_stmt_bind_param($stmt, 'si', $fresh_hash, $user['id']);
-        mysqli_stmt_execute($stmt);
-        mysqli_stmt_close($stmt);
+        $stmt = App\Core\Database::getConnection()->prepare('UPDATE users SET password = :password WHERE id = :id');
+        $stmt->execute(['password' => $fresh_hash, 'id' => (int) $user['id']]);
     }
 
     return $matches;

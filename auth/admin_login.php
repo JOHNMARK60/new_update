@@ -5,7 +5,7 @@ if (isset($_SESSION['user_id'])) {
     redirect_for_role($_SESSION['role']);
 }
 
-$pageTitle = 'Admin Login | Cashiering Inventory System';
+$pageTitle = 'Admin Login | KANTO GOODS';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -23,6 +23,7 @@ $pageTitle = 'Admin Login | Cashiering Inventory System';
         </section>
 
         <form action="admin_login_process.php" method="POST" class="space-y-4 p-8">
+            <input type="hidden" name="role" value="admin">
             <div class="form-group">
                 <label for="username">Admin email</label>
                 <input id="username" type="email" name="username" autocomplete="email" required>

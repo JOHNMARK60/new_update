@@ -3,11 +3,9 @@ require_once __DIR__ . '/../config/auth.php';
 require_role('admin');
 
 $id = (int) ($_GET['id'] ?? 0);
-$stmt = mysqli_prepare($conn, "SELECT * FROM users WHERE id = ? AND role = 'cashier' LIMIT 1");
-mysqli_stmt_bind_param($stmt, 'i', $id);
-mysqli_stmt_execute($stmt);
-$user = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
-mysqli_stmt_close($stmt);
+$stmt = $pdo->prepare("SELECT * FROM users WHERE id = :id AND role = 'cashier' LIMIT 1");
+$stmt->execute(['id' => $id]);
+$user = $stmt->fetch();
 
 if (!$user) {
     header('Location: admin_users.php');
@@ -25,13 +23,23 @@ $pageTitle = 'Cashier Details | Admin';
     <?php include __DIR__ . '/admin_sidebar.php'; ?>
 
     <main class="admin-main">
-        <header class="page-topbar">
-            <div>
-                <h1 class="page-title">Cashier Details</h1>
-                <p class="page-subtitle"><?php echo e($user['first_name'] . ' ' . $user['last_name']); ?></p>
-            </div>
-            <a href="admin_users.php" class="btn btn-secondary">Back</a>
-        </header>
+        <?php
+        $appHeaderRole = 'admin';
+        $appHeaderRoleLabel = 'Administrator';
+        $appHeaderTitle = 'Cashier Details';
+        $appHeaderSubtitle = $user['first_name'] . ' ' . $user['last_name'];
+        $appHeaderIcon = 'fa-id-card';
+        $appHeaderHome = 'admin_dashboard.php';
+        $appHeaderActions = [
+            [
+                'href' => 'admin_users.php',
+                'label' => 'Back',
+                'icon' => 'fa-arrow-left',
+                'class' => 'btn btn-secondary',
+            ],
+        ];
+        include __DIR__ . '/../config/app_header.php';
+        ?>
 
         <section class="panel max-w-2xl p-6">
             <dl class="grid gap-4 sm:grid-cols-2">

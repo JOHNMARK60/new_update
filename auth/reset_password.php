@@ -13,7 +13,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $confirm = $_POST['confirm_password'] ?? '';
 
     if ($password !== $confirm) {
-        echo "<script>alert('Password does not match.'); window.location='reset_password.php?token=" . e($token) . "';</script>";
+        swal_flash('warning', 'Passwords do not match.', 'Please re-enter your new password.');
+        header('Location: reset_password.php?token=' . urlencode($token));
         exit();
     }
 
@@ -22,7 +23,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user = $stmt->fetch();
 
     if (!$user) {
-        echo "<script>alert('Reset token is invalid or expired.'); window.location='forgot_password.php';</script>";
+        swal_flash('error', 'Invalid reset link.', 'Reset token is invalid or expired.');
+        header('Location: forgot_password.php');
         exit();
     }
 
@@ -30,7 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt = $pdo->prepare('UPDATE users SET password = ?, reset_token = NULL, token_expires_at = NULL WHERE id = ?');
     $stmt->execute([$hash, $user['id']]);
 
-    echo "<script>alert('Password updated. Please sign in.'); window.location='login.php';</script>";
+    swal_flash('success', 'Password reset successful.', 'Password updated. Please sign in.');
+    header('Location: login.php');
     exit();
 }
 

@@ -5,7 +5,7 @@ if (isset($_SESSION['user_id'])) {
     redirect_for_role($_SESSION['role']);
 }
 
-$pageTitle = 'Cashier Login | Cashiering Inventory System';
+$pageTitle = 'Cashier Login | KANTO GOODS';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -23,6 +23,7 @@ $pageTitle = 'Cashier Login | Cashiering Inventory System';
         </section>
 
         <form action="login_process.php" method="POST" class="space-y-4 p-8">
+            <input type="hidden" name="role" value="cashier">
             <div class="form-group">
                 <label for="email">Email address</label>
                 <input id="email" type="email" name="email" autocomplete="email" required>
@@ -40,7 +41,7 @@ $pageTitle = 'Cashier Login | Cashiering Inventory System';
         </form>
 
         <div class="grid gap-3 border-t border-slate-200 bg-slate-50 p-6 text-center text-sm">
-            <a href="register.php" class="font-semibold text-brand hover:underline">Create cashier account</a>
+            <p class="text-slate-500">Cashier accounts are created by the administrator.</p>
             <a href="forgot_password.php" class="font-semibold text-slate-600 hover:text-brand">Forgot password?</a>
             <a href="admin_login.php" class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-3 font-bold text-ink hover:bg-slate-100">
                 <i class="fa-solid fa-user-shield"></i>

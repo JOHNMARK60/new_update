@@ -2,20 +2,31 @@
 require_once __DIR__ . '/../config/auth.php';
 require_role('cashier');
 
-$user_id = (int) $_SESSION['user_id'];
-$today_sales = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COALESCE(SUM(total_price), 0) AS total FROM sales WHERE user_id = $user_id AND DATE(sale_date) = CURDATE()"))['total'];
-$total_revenue = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COALESCE(SUM(total_price), 0) AS total FROM sales WHERE user_id = $user_id"))['total'];
+use App\Repositories\SaleRepository;
 
-$chart_query = mysqli_query($conn, "SELECT p.name, SUM(s.quantity) AS qty FROM sales s LEFT JOIN products p ON s.product_id = p.id WHERE s.user_id = $user_id GROUP BY p.name ORDER BY qty DESC LIMIT 5");
+$user_id = (int) $_SESSION['user_id'];
+$saleRepository = new SaleRepository($pdo);
+$todaySummary = $saleRepository->summary([
+    'cashier_id' => $user_id,
+    'date_from' => date('Y-m-d'),
+    'date_to' => date('Y-m-d'),
+    'status' => 'paid',
+]);
+$allSummary = $saleRepository->summary([
+    'cashier_id' => $user_id,
+    'status' => 'paid',
+]);
+
 $product_names = [];
 $product_quantities = [];
+$topItems = array_slice($saleRepository->itemSummary(['cashier_id' => $user_id, 'status' => 'paid']), 0, 5);
 
-while ($row = mysqli_fetch_assoc($chart_query)) {
-    $product_names[] = $row['name'] ?? 'Deleted product';
-    $product_quantities[] = (int) $row['qty'];
+foreach ($topItems as $row) {
+    $product_names[] = $row['product_name'] ?? 'Deleted product';
+    $product_quantities[] = (int) $row['quantity_sold'];
 }
 
-$transactions = mysqli_query($conn, "SELECT s.*, p.name FROM sales s LEFT JOIN products p ON s.product_id = p.id WHERE s.user_id = $user_id ORDER BY s.sale_date DESC LIMIT 10");
+$transactions = array_slice($saleRepository->transactions(['cashier_id' => $user_id]), 0, 10);
 $pageTitle = 'Sales Reports | Cashier';
 ?>
 <!DOCTYPE html>
@@ -28,21 +39,29 @@ $pageTitle = 'Sales Reports | Cashier';
     <?php include __DIR__ . '/user_sidebar.php'; ?>
 
     <main class="main-content">
-        <header class="page-topbar">
-            <div>
-                <h1 class="page-title">Sales Reports</h1>
-                <p class="page-subtitle">Performance overview for <strong><?php echo e($_SESSION['first_name']); ?></strong>.</p>
-            </div>
-        </header>
+        <?php
+        $appHeaderRole = 'cashier';
+        $appHeaderRoleLabel = 'Cashier';
+        $appHeaderKicker = 'Cashier workspace';
+        $appHeaderTitle = 'Sales Reports';
+        $appHeaderSubtitle = 'Your cashier-specific sales only. Admin can review all cashiers from Sales Reports.';
+        $appHeaderIcon = 'fa-chart-pie';
+        $appHeaderHome = 'user_dashboard.php';
+        $appHeaderShowSearch = false;
+        $appHeaderActions = [
+            ['href' => 'cashier_closing.php', 'label' => 'Daily Closing', 'icon' => 'fa-lock', 'class' => 'btn btn-secondary'],
+        ];
+        include __DIR__ . '/../config/app_header.php';
+        ?>
 
         <section class="dashboard-cards">
             <article class="dashboard-card">
                 <p class="text-sm font-semibold text-slate-500">Sales Today</p>
-                <h2 class="mt-1 text-3xl font-extrabold text-ink"><?php echo money($today_sales); ?></h2>
+                <h2 class="mt-1 text-3xl font-extrabold text-ink"><?php echo money($todaySummary['total_sales']); ?></h2>
             </article>
             <article class="dashboard-card">
                 <p class="text-sm font-semibold text-slate-500">Total Revenue</p>
-                <h2 class="mt-1 text-3xl font-extrabold text-ink"><?php echo money($total_revenue); ?></h2>
+                <h2 class="mt-1 text-3xl font-extrabold text-ink"><?php echo money($allSummary['total_sales']); ?></h2>
             </article>
         </section>
 
@@ -56,26 +75,32 @@ $pageTitle = 'Sales Reports | Cashier';
                         <thead>
                             <tr>
                                 <th>ID</th>
-                                <th>Product</th>
+                                <th>Receipt</th>
+                                <th>Items</th>
                                 <th>Amount</th>
+                                <th>Cash</th>
+                                <th>Change</th>
                                 <th>Date</th>
                                 <th>Status</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php if ($transactions && mysqli_num_rows($transactions) > 0): ?>
-                                <?php while ($row = mysqli_fetch_assoc($transactions)): ?>
+                            <?php if ($transactions): ?>
+                                <?php foreach ($transactions as $row): ?>
                                     <tr>
                                         <td><?php echo (int) $row['id']; ?></td>
-                                        <td><strong><?php echo e($row['name'] ?? 'Deleted product'); ?></strong></td>
-                                        <td><?php echo money($row['total_price']); ?></td>
+                                        <td><strong><?php echo e($row['receipt_no'] ?? str_pad((string) $row['id'], 6, '0', STR_PAD_LEFT)); ?></strong></td>
+                                        <td><?php echo (int) $row['items_sold']; ?></td>
+                                        <td><?php echo money($row['total_amount']); ?></td>
+                                        <td><?php echo money($row['tendered_amount']); ?></td>
+                                        <td><?php echo money($row['change_amount']); ?></td>
                                         <td><?php echo e(date('M d, Y h:i A', strtotime($row['sale_date']))); ?></td>
-                                        <td><span class="status-paid">Paid</span></td>
+                                        <td><span class="status-paid"><?php echo e(ucfirst($row['status'] ?? 'paid')); ?></span></td>
                                     </tr>
-                                <?php endwhile; ?>
+                                <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="5" class="py-10 text-center text-slate-500">No transactions found yet.</td>
+                                    <td colspan="8" class="py-10 text-center text-slate-500">No transactions found yet.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -90,6 +115,17 @@ $pageTitle = 'Sales Reports | Cashier';
                 </div>
             </article>
         </section>
+
+        <?php
+        $appFooterRole = 'cashier';
+        $appFooterRoleLabel = 'Cashier';
+        $appFooterLinks = [
+            ['href' => 'user_dashboard.php', 'label' => 'Dashboard', 'icon' => 'fa-table-columns'],
+            ['href' => 'cashier_sales.php', 'label' => 'POS', 'icon' => 'fa-cash-register'],
+            ['href' => 'cashier_closing.php', 'label' => 'Closing', 'icon' => 'fa-lock'],
+        ];
+        include __DIR__ . '/../config/app_footer.php';
+        ?>
     </main>
 
     <script>

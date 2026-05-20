@@ -2,6 +2,15 @@
 require_once __DIR__ . '/../config/auth.php';
 require_role('admin');
 
+function role_id_for(PDO $pdo, string $role): ?int
+{
+    $stmt = $pdo->prepare('SELECT id FROM roles WHERE name = :role LIMIT 1');
+    $stmt->execute(['role' => $role]);
+    $roleId = $stmt->fetchColumn();
+
+    return $roleId !== false ? (int) $roleId : null;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $first_name = trim($_POST['first_name'] ?? '');
     $last_name = trim($_POST['last_name'] ?? '');
@@ -12,30 +21,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $confirm = $_POST['confirm_password'] ?? '';
 
     if ($password !== $confirm) {
-        echo "<script>alert('Password does not match.'); window.location='admin_create_user.php';</script>";
+        swal_flash('warning', 'Passwords do not match.', 'Please re-enter the cashier password.');
+        header('Location: admin_create_user.php');
         exit();
     }
 
-    $stmt = mysqli_prepare($conn, 'SELECT id FROM users WHERE email = ? LIMIT 1');
-    mysqli_stmt_bind_param($stmt, 's', $email);
-    mysqli_stmt_execute($stmt);
-    $exists = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
-    mysqli_stmt_close($stmt);
+    $stmt = $pdo->prepare('SELECT id FROM users WHERE email = :email LIMIT 1');
+    $stmt->execute(['email' => $email]);
+    $exists = $stmt->fetch();
 
     if ($exists) {
-        echo "<script>alert('Email already exists.'); window.location='admin_create_user.php';</script>";
+        swal_flash('error', 'Username or email already exists.', 'Use a different cashier email address.');
+        header('Location: admin_create_user.php');
         exit();
     }
 
     $hash = password_hash($password, PASSWORD_DEFAULT);
-    $stmt = mysqli_prepare(
-        $conn,
-        'INSERT INTO users (first_name, last_name, email, phone, password, role) VALUES (?, ?, ?, ?, ?, ?)'
+    $roleId = role_id_for($pdo, $role);
+    $stmt = $pdo->prepare(
+        'INSERT INTO users (first_name, last_name, email, phone, password, role, role_id)
+         VALUES (:first_name, :last_name, :email, :phone, :password, :role, :role_id)'
     );
-    mysqli_stmt_bind_param($stmt, 'ssssss', $first_name, $last_name, $email, $phone, $hash, $role);
-    mysqli_stmt_execute($stmt);
-    mysqli_stmt_close($stmt);
+    $stmt->execute([
+        'first_name' => $first_name,
+        'last_name' => $last_name,
+        'email' => $email,
+        'phone' => $phone,
+        'password' => $hash,
+        'role' => $role,
+        'role_id' => $roleId,
+    ]);
 
+    swal_flash('success', 'Cashier Account Created', 'Cashier account created successfully.');
     header('Location: admin_users.php');
     exit();
 }
@@ -51,13 +68,23 @@ $pageTitle = 'Add Cashier | Admin';
     <?php include __DIR__ . '/admin_sidebar.php'; ?>
 
     <main class="admin-main">
-        <header class="page-topbar">
-            <div>
-                <h1 class="page-title">Add Cashier</h1>
-                <p class="page-subtitle">Create a cashier account from the admin workspace.</p>
-            </div>
-            <a href="admin_users.php" class="btn btn-secondary">Back</a>
-        </header>
+        <?php
+        $appHeaderRole = 'admin';
+        $appHeaderRoleLabel = 'Administrator';
+        $appHeaderTitle = 'Add Cashier';
+        $appHeaderSubtitle = 'Create a cashier account from the admin workspace.';
+        $appHeaderIcon = 'fa-user-plus';
+        $appHeaderHome = 'admin_dashboard.php';
+        $appHeaderActions = [
+            [
+                'href' => 'admin_users.php',
+                'label' => 'Back',
+                'icon' => 'fa-arrow-left',
+                'class' => 'btn btn-secondary',
+            ],
+        ];
+        include __DIR__ . '/../config/app_header.php';
+        ?>
 
         <section class="panel max-w-3xl p-6">
             <form method="POST" class="grid gap-5">
@@ -86,7 +113,7 @@ $pageTitle = 'Add Cashier | Admin';
                 <div class="form-group">
                     <label for="role">Role</label>
                     <select id="role" name="role" required>
-                        <option value="cashier">User</option>
+                        <option value="cashier">Cashier</option>
                         <option value="admin">Administrator</option>
                     </select>
                 </div>

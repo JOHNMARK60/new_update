@@ -3,11 +3,16 @@ require_once __DIR__ . '/../config/auth.php';
 require_role('admin');
 
 $id = (int) ($_GET['id'] ?? 0);
-$stmt = mysqli_prepare($conn, 'SELECT * FROM products WHERE id = ? LIMIT 1');
-mysqli_stmt_bind_param($stmt, 'i', $id);
-mysqli_stmt_execute($stmt);
-$product = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
-mysqli_stmt_close($stmt);
+$stmt = $pdo->prepare(
+    'SELECT p.*, c.name AS category_name, s.name AS supplier_name
+     FROM products p
+     LEFT JOIN categories c ON c.id = p.category_id
+     LEFT JOIN suppliers s ON s.id = p.supplier_id
+     WHERE p.id = :id
+     LIMIT 1'
+);
+$stmt->execute(['id' => $id]);
+$product = $stmt->fetch();
 
 if (!$product) {
     header('Location: admin_inventory.php');
@@ -25,13 +30,26 @@ $pageTitle = 'Product Details | Admin';
     <?php include __DIR__ . '/admin_sidebar.php'; ?>
 
     <main class="admin-main">
-        <header class="page-topbar">
-            <div>
-                <h1 class="page-title">Product Details</h1>
-                <p class="page-subtitle"><?php echo e($product['name']); ?></p>
-            </div>
-            <a href="admin_inventory.php" class="btn btn-secondary">Back</a>
-        </header>
+        <?php
+        $appHeaderRole = 'admin';
+        $appHeaderRoleLabel = 'Administrator';
+        $appHeaderBrandTitle = 'KANTO GOODS';
+        $appHeaderBrandSubtitle = 'Admin Console';
+        $appHeaderBrandIcon = 'fa-box-open';
+        $appHeaderTitle = 'Product Details';
+        $appHeaderSubtitle = $product['name'];
+        $appHeaderIcon = 'fa-box';
+        $appHeaderHome = 'admin_dashboard.php';
+        $appHeaderActions = [
+            [
+                'href' => 'admin_inventory.php',
+                'label' => 'Back',
+                'icon' => 'fa-arrow-left',
+                'class' => 'btn btn-secondary',
+            ],
+        ];
+        include __DIR__ . '/../config/app_header.php';
+        ?>
 
         <section class="grid gap-5 lg:grid-cols-3">
             <article class="panel p-6">
@@ -46,6 +64,18 @@ $pageTitle = 'Product Details | Admin';
                 <p class="text-sm font-bold text-slate-500">Quantity</p>
                 <h2 class="mt-2 text-2xl font-extrabold text-ink"><?php echo (int) $product['quantity']; ?></h2>
             </article>
+        </section>
+
+        <section class="panel mt-5 p-6">
+            <h2 class="text-lg font-extrabold text-ink">Inventory Details</h2>
+            <dl class="modal-detail-grid mt-5">
+                <div><dt>SKU</dt><dd><?php echo e($product['sku'] ?? 'N/A'); ?></dd></div>
+                <div><dt>Category</dt><dd><?php echo e($product['category_name'] ?? 'General'); ?></dd></div>
+                <div><dt>Supplier</dt><dd><?php echo e($product['supplier_name'] ?? 'N/A'); ?></dd></div>
+                <div><dt>Low Stock Level</dt><dd><?php echo (int) ($product['low_stock_level'] ?? 5); ?></dd></div>
+                <div><dt>Expiration Date</dt><dd><?php echo e($product['expiration_date'] ?? 'N/A'); ?></dd></div>
+                <div><dt>Date Added</dt><dd><?php echo e(date('M d, Y', strtotime($product['created_at']))); ?></dd></div>
+            </dl>
         </section>
 
         <a href="edit_product.php?id=<?php echo (int) $product['id']; ?>" class="btn mt-6">
