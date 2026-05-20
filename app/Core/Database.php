@@ -293,7 +293,8 @@ class Database
             ('Snacks'),
             ('Personal Care'),
             ('Household'),
-            ('School Supplies')");
+            ('School Supplies'),
+            ('Frozen Goods')");
         $pdo->exec("UPDATE sales SET total_amount = total_price WHERE total_amount = 0 AND total_price > 0");
         $pdo->exec("UPDATE sales SET subtotal_amount = total_amount WHERE subtotal_amount = 0 AND total_amount > 0");
         $pdo->exec("UPDATE sales s LEFT JOIN users u ON u.id = s.user_id
@@ -428,11 +429,57 @@ class Database
 
         $sampleProducts = [
             [
+                'name' => 'Bottled Water',
+                'price' => 25.00,
+                'quantity' => 39,
+                'image_path' => 'assets/uploads/products/product_20260513121655_47904b25.jpg',
+                'category' => null,
+                'expiration_date' => null,
+                'sku' => null,
+            ],
+            [
+                'name' => 'Instant Coffee',
+                'price' => 12.00,
+                'quantity' => 68,
+                'image_path' => 'assets/uploads/products/product_20260513121549_9f309a7d.jpg',
+                'category' => null,
+                'expiration_date' => null,
+                'sku' => null,
+            ],
+            [
+                'name' => 'Notebook',
+                'price' => 35.00,
+                'quantity' => 2,
+                'image_path' => 'assets/uploads/products/product_20260513121509_d9f65b1f.jpg',
+                'category' => null,
+                'expiration_date' => null,
+                'sku' => null,
+            ],
+            [
+                'name' => 'Ballpen',
+                'price' => 10.00,
+                'quantity' => 86,
+                'image_path' => 'assets/uploads/products/product_20260513121439_675629c5.jpg',
+                'category' => null,
+                'expiration_date' => null,
+                'sku' => null,
+            ],
+            [
+                'name' => 'Papers',
+                'price' => 20.00,
+                'quantity' => 97,
+                'image_path' => 'assets/uploads/products/product_20260513121348_ec8a57ef.jpg',
+                'category' => null,
+                'expiration_date' => null,
+                'sku' => null,
+            ],
+            [
                 'name' => 'Kanto Iced Tea 500ml',
                 'price' => 35.00,
-                'quantity' => 10,
+                'quantity' => 9,
                 'image_path' => 'assets/images/sample-products/beverages.svg',
                 'category' => 'Beverages',
+                'expiration_date' => null,
                 'sku' => 'BEV-001',
             ],
             [
@@ -441,46 +488,141 @@ class Database
                 'quantity' => 10,
                 'image_path' => 'assets/images/sample-products/snacks.svg',
                 'category' => 'Snacks',
+                'expiration_date' => null,
                 'sku' => 'SNK-001',
             ],
             [
-                'name' => 'Fresh Care Soap 90g',
+                'name' => 'Safe Guard',
                 'price' => 48.00,
-                'quantity' => 10,
-                'image_path' => 'assets/images/sample-products/personal-care.svg',
+                'quantity' => 9,
+                'image_path' => 'assets/uploads/products/product_20260517135758_a0352d5b.jpg',
                 'category' => 'Personal Care',
+                'expiration_date' => null,
                 'sku' => 'PC-001',
             ],
             [
-                'name' => 'Home Clean Dish Soap 250ml',
+                'name' => 'JOY',
                 'price' => 55.00,
-                'quantity' => 10,
-                'image_path' => 'assets/images/sample-products/household.svg',
+                'quantity' => 9,
+                'image_path' => 'assets/uploads/products/product_20260517140016_655203af.jpg',
                 'category' => 'Household',
+                'expiration_date' => null,
                 'sku' => 'HH-001',
             ],
             [
                 'name' => 'Classic Notebook 80 Leaves',
                 'price' => 35.00,
                 'quantity' => 10,
-                'image_path' => 'assets/images/sample-products/school-supplies.svg',
+                'image_path' => 'assets/uploads/products/product_20260517140105_962ab560.jpg',
                 'category' => 'School Supplies',
+                'expiration_date' => null,
                 'sku' => 'SS-001',
+            ],
+            [
+                'name' => "L'Oreal Paris Elvive Color Vibrancy Protecting Shampoo and Conditioner Set, 12.6 Ounce Each",
+                'price' => 80.00,
+                'quantity' => 19,
+                'image_path' => 'assets/uploads/products/product_20260517140249_99501261.jpg',
+                'category' => 'Personal Care',
+                'expiration_date' => null,
+                'sku' => null,
+            ],
+            [
+                'name' => 'Pantene',
+                'price' => 150.00,
+                'quantity' => 10,
+                'image_path' => 'assets/uploads/products/product_20260517140400_9d9ee09d.jpg',
+                'category' => 'Personal Care',
+                'expiration_date' => '2027-07-17',
+                'sku' => null,
+            ],
+            [
+                'name' => 'Magnolia CS Chicken Korean Barbeque | 500g-550g',
+                'price' => 180.00,
+                'quantity' => 9,
+                'image_path' => 'assets/uploads/products/product_20260517141445_1414e474.webp',
+                'category' => 'Frozen Goods',
+                'expiration_date' => '2026-06-17',
+                'sku' => null,
+            ],
+            [
+                'name' => 'Purefoods Stuffed Nuggets Bacon & Cheese | 200g',
+                'price' => 119.00,
+                'quantity' => 10,
+                'image_path' => 'assets/uploads/products/product_20260517141556_cddbf206.webp',
+                'category' => 'Frozen Goods',
+                'expiration_date' => '2026-06-17',
+                'sku' => null,
+            ],
+            [
+                'name' => 'PureFoods Tender Juicy Hotdog Classic | 1kg',
+                'price' => 189.00,
+                'quantity' => 20,
+                'image_path' => 'assets/uploads/products/product_20260517141724_f3dc7b86.webp',
+                'category' => 'Frozen Goods',
+                'expiration_date' => '2026-07-17',
+                'sku' => null,
+            ],
+            [
+                'name' => 'Purefoods Chicken Nuggets Fun Stuff Letters & Numbers | 200g',
+                'price' => 110.00,
+                'quantity' => 20,
+                'image_path' => 'assets/uploads/products/product_20260517141929_309f6ac0.webp',
+                'category' => 'Frozen Goods',
+                'expiration_date' => '2026-06-17',
+                'sku' => null,
+            ],
+            [
+                'name' => 'Tang Powdered Juice Drink Calamansi | 25g',
+                'price' => 20.00,
+                'quantity' => 20,
+                'image_path' => 'assets/uploads/products/product_20260517142149_0f90ae3b.webp',
+                'category' => 'Beverages',
+                'expiration_date' => '2028-01-17',
+                'sku' => null,
+            ],
+            [
+                'name' => 'Milo Active Go Twinpack | 48g 8pcs',
+                'price' => 142.00,
+                'quantity' => 50,
+                'image_path' => 'assets/uploads/products/product_20260517142244_df9e14ff.webp',
+                'category' => 'Beverages',
+                'expiration_date' => '2028-01-17',
+                'sku' => null,
+            ],
+            [
+                'name' => 'Great Taste White Crema 3-in-1 Coffee Mix Twin Pack | 50g 5Pcs',
+                'price' => 70.95,
+                'quantity' => 19,
+                'image_path' => 'assets/uploads/products/product_20260517142332_190fba4c.webp',
+                'category' => 'Beverages',
+                'expiration_date' => null,
+                'sku' => null,
+            ],
+            [
+                'name' => 'Del Monte Pineapple Juice Drink Fiber Enriched | 1L Tetra',
+                'price' => 134.00,
+                'quantity' => 18,
+                'image_path' => 'assets/uploads/products/product_20260517142423_3ae49373.webp',
+                'category' => 'Beverages',
+                'expiration_date' => '2027-01-17',
+                'sku' => null,
             ],
         ];
 
         $existsStmt = $pdo->prepare('SELECT COUNT(*) FROM products WHERE sku = :sku OR name = :name');
         $insertStmt = $pdo->prepare(
             'INSERT INTO products
-                (name, price, quantity, image_path, category_id, low_stock_level, sku)
+                (name, price, quantity, image_path, category_id, low_stock_level, expiration_date, sku)
              VALUES
-                (:name, :price, :quantity, :image_path, :category_id, 5, :sku)'
+                (:name, :price, :quantity, :image_path, :category_id, 5, :expiration_date, :sku)'
         );
 
         foreach ($sampleProducts as $product) {
-            $categoryId = $categoryIds[$product['category']] ?? null;
+            $categoryName = $product['category'];
+            $categoryId = $categoryName === null ? null : ($categoryIds[$categoryName] ?? null);
 
-            if ($categoryId === null) {
+            if ($categoryName !== null && $categoryId === null) {
                 continue;
             }
 
@@ -499,6 +641,7 @@ class Database
                 'quantity' => $product['quantity'],
                 'image_path' => $product['image_path'],
                 'category_id' => $categoryId,
+                'expiration_date' => $product['expiration_date'],
                 'sku' => $product['sku'],
             ]);
         }
