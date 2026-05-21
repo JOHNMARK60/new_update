@@ -38,6 +38,52 @@
   window.KantoSwal = swalFire;
   window.KantoToast = toast;
 
+  function appBaseUrl() {
+    const configuredBase = String(window.KANTO_BASE_URL || '').trim();
+
+    if (configuredBase) {
+      return new URL(configuredBase, window.location.origin).href;
+    }
+
+    const script = document.querySelector('script[src*="assets/js/script.js"]');
+
+    if (script?.src) {
+      return script.src.replace(/assets\/js\/script\.js.*$/, '');
+    }
+
+    return `${window.location.origin}/`;
+  }
+
+  function normalizeRedirect(redirect) {
+    const value = String(redirect || '').trim();
+
+    if (!value) {
+      return '';
+    }
+
+    if (value.startsWith('//')) {
+      return new URL(value.replace(/^\/+/, ''), appBaseUrl()).href;
+    }
+
+    if (value.startsWith('/')) {
+      const base = new URL(appBaseUrl());
+
+      if (base.pathname !== '/' && !value.startsWith(base.pathname)) {
+        return new URL(value.replace(/^\/+/, ''), base.href).href;
+      }
+    }
+
+    return new URL(value, window.location.href).href;
+  }
+
+  function followRedirect(redirect) {
+    const url = normalizeRedirect(redirect);
+
+    if (url) {
+      window.location.href = url;
+    }
+  }
+
   function showFlash() {
     const flash = window.KANTO_SWAL_FLASH;
 
@@ -59,7 +105,7 @@
       toast(options.icon, options.title);
       if (redirect) {
         window.setTimeout(() => {
-          window.location.href = redirect;
+          followRedirect(redirect);
         }, flash.timer || 1300);
       }
       return;
@@ -67,7 +113,7 @@
 
     swalFire(options).then(() => {
       if (redirect) {
-        window.location.href = redirect;
+        followRedirect(redirect);
       }
     });
   }
@@ -204,7 +250,7 @@
         });
 
         if (result.status === 'success' && result.redirect) {
-          window.location.href = result.redirect;
+          followRedirect(result.redirect);
         }
       } catch (error) {
         await swalFire({

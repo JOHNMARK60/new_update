@@ -78,25 +78,32 @@ function swal_response_or_redirect(array $payload, string $fallback): never
 
 function app_base_path()
 {
-    $script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
-    $dir = rtrim(str_replace('\\', '/', dirname($script)), '/');
+    $script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? $_SERVER['PHP_SELF'] ?? '');
+    $dir = str_replace('\\', '/', dirname($script));
 
     if ($dir === '.' || $dir === '') {
         return '';
     }
 
+    $dir = '/' . trim($dir, '/');
     $section = basename($dir);
 
     if (in_array($section, ['admin', 'user', 'cashier', 'auth', 'assets', 'config'], true)) {
-        $dir = rtrim(dirname($dir), '/');
+        $dir = dirname($dir);
     }
 
-    return $dir === '/' ? '' : $dir;
+    $dir = trim(str_replace('\\', '/', $dir), '/');
+
+    return $dir === '' ? '' : '/' . $dir;
 }
 
 function app_url($path = '')
 {
-    return app_base_path() . '/' . ltrim($path, '/');
+    $base = trim(app_base_path(), '/');
+    $path = ltrim((string) $path, '/');
+    $parts = array_filter([$base, $path], static fn($part) => $part !== '');
+
+    return '/' . implode('/', $parts);
 }
 
 function redirect_for_role($role)
