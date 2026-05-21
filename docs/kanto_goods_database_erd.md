@@ -3,7 +3,7 @@
 ## Table List
 
 - `roles`: role lookup table. Primary key: `id`. Unique key: `name`.
-- `users`: admin and cashier accounts. Primary key: `id`. Foreign key: `role` references `roles.name`.
+- `users`: admin and cashier accounts. Primary key: `id`. Foreign keys: `role_id` references `roles.id`, and legacy-compatible `role` references `roles.name`.
 - `categories`: product category lookup. Primary key: `id`.
 - `suppliers`: supplier lookup. Primary key: `id`.
 - `products`: sellable inventory items. Primary key: `id`. Foreign keys: `category_id`, `supplier_id`.
@@ -12,41 +12,53 @@
 - `payments`: payment records for sales. Primary key: `id`. Foreign key: `sale_id`.
 - `inventory_logs`: inventory movement history. Primary key: `id`. Foreign keys: `product_id`, `created_by`.
 - `receipts`: receipt records. Primary key: `id`. Foreign key: `sale_id`.
-- `closing_reports`: daily cashier closing records. Primary key: `id`. Foreign keys: `cashier_id`, `closed_by`.
-- `admin_notifications`: admin notification records. Primary key: `id`.
+- `closing_reports`: daily cashier closing records. Primary key: `id`. Foreign keys: `cashier_id`, `closed_by`, `reviewed_by`.
+- `admin_notifications`: admin notification records. Primary key: `id`. It uses `related_type` and `related_id` as a generic pointer, so no direct FK is enforced.
 
 ## Mermaid ERD
 
+Legend:
+
+- `PK` means Primary Key.
+- `FK` means Foreign Key.
+- `UK` means Unique Key.
+- The quoted text after an FK shows which table and column it references.
+
 ```mermaid
 erDiagram
-    ROLES ||--o{ USERS : has
-    USERS ||--o{ SALES : processes
-    USERS ||--o{ INVENTORY_LOGS : records
-    USERS ||--o{ CLOSING_REPORTS : cashier
+    ROLES ||--o{ USERS : role_id
+    ROLES ||--o{ USERS : role
+    USERS ||--o{ SALES : cashier_id
+    USERS ||--o{ SALES : user_id
+    USERS ||--o{ INVENTORY_LOGS : created_by
+    USERS ||--o{ CLOSING_REPORTS : cashier_id
     USERS ||--o{ CLOSING_REPORTS : closed_by
-    CATEGORIES ||--o{ PRODUCTS : contains
-    SUPPLIERS ||--o{ PRODUCTS : supplies
-    PRODUCTS ||--o{ SALE_ITEMS : included_in
-    PRODUCTS ||--o{ INVENTORY_LOGS : moves
-    SALES ||--o{ SALE_ITEMS : has
-    SALES ||--o{ PAYMENTS : paid_by
-    SALES ||--o| RECEIPTS : generates
+    USERS ||--o{ CLOSING_REPORTS : reviewed_by
+    CATEGORIES ||--o{ PRODUCTS : category_id
+    SUPPLIERS ||--o{ PRODUCTS : supplier_id
+    PRODUCTS ||--o{ SALES : product_id
+    PRODUCTS ||--o{ SALE_ITEMS : product_id
+    PRODUCTS ||--o{ INVENTORY_LOGS : product_id
+    SALES ||--o{ SALE_ITEMS : sale_id
+    SALES ||--o{ PAYMENTS : sale_id
+    SALES ||--o| RECEIPTS : sale_id
 
     ROLES {
-        int id PK
-        varchar name UK
+        int id PK "primary key"
+        varchar name UK "unique role name"
         varchar label
         datetime created_at
     }
 
     USERS {
-        int id PK
+        int id PK "primary key"
         varchar first_name
         varchar last_name
-        varchar email UK
+        varchar email UK "unique login email"
         varchar phone
         varchar password
-        varchar role FK
+        varchar role FK "roles.name"
+        int role_id FK "roles.id"
         varchar reset_token
         datetime token_expires_at
         datetime created_at
@@ -54,26 +66,26 @@ erDiagram
     }
 
     CATEGORIES {
-        int id PK
-        varchar name UK
+        int id PK "primary key"
+        varchar name UK "unique category name"
         datetime created_at
     }
 
     SUPPLIERS {
-        int id PK
-        varchar name UK
+        int id PK "primary key"
+        varchar name UK "unique supplier name"
         varchar contact_no
         datetime created_at
     }
 
     PRODUCTS {
-        int id PK
+        int id PK "primary key"
         varchar name
         decimal price
         int quantity
         varchar image_path
-        int category_id FK
-        int supplier_id FK
+        int category_id FK "categories.id"
+        int supplier_id FK "suppliers.id"
         int low_stock_level
         date expiration_date
         varchar sku
@@ -82,9 +94,13 @@ erDiagram
     }
 
     SALES {
-        int id PK
+        int id PK "primary key"
         varchar receipt_no
-        int cashier_id FK
+        int product_id FK "products.id legacy"
+        int quantity
+        decimal total_price
+        int user_id FK "users.id legacy"
+        int cashier_id FK "users.id"
         varchar cashier_name
         decimal subtotal_amount
         decimal discount
@@ -100,9 +116,9 @@ erDiagram
     }
 
     SALE_ITEMS {
-        int id PK
-        int sale_id FK
-        int product_id FK
+        int id PK "primary key"
+        int sale_id FK "sales.id"
+        int product_id FK "products.id"
         varchar product_name
         int quantity
         decimal unit_price
@@ -111,8 +127,8 @@ erDiagram
     }
 
     PAYMENTS {
-        int id PK
-        int sale_id FK
+        int id PK "primary key"
+        int sale_id FK "sales.id"
         decimal amount
         decimal tendered_amount
         decimal change_amount
@@ -122,31 +138,31 @@ erDiagram
     }
 
     INVENTORY_LOGS {
-        int id PK
-        int product_id FK
+        int id PK "primary key"
+        int product_id FK "products.id"
         varchar action
         int quantity_change
         int stock_before
         int stock_after
         varchar reference_type
         int reference_id
-        int created_by FK
+        int created_by FK "users.id"
         datetime created_at
     }
 
     RECEIPTS {
-        int id PK
-        int sale_id FK
-        varchar receipt_no UK
+        int id PK "primary key"
+        int sale_id FK "sales.id"
+        varchar receipt_no UK "unique receipt number"
         json receipt_data
         datetime printed_at
         datetime created_at
     }
 
     CLOSING_REPORTS {
-        int id PK
+        int id PK "primary key"
         date closing_date
-        int cashier_id FK
+        int cashier_id FK "users.id"
         varchar cashier_name
         int total_transactions
         int total_items_sold
@@ -156,11 +172,50 @@ erDiagram
         decimal actual_cash_amount
         decimal difference_amount
         datetime closing_time
-        int closed_by FK
+        int closed_by FK "users.id"
         varchar status
         varchar notes
+        varchar review_status
+        varchar admin_feedback
+        int reviewed_by FK "users.id"
+        datetime reviewed_at
+    }
+
+    ADMIN_NOTIFICATIONS {
+        int id PK "primary key"
+        varchar type
+        varchar title
+        varchar body
+        varchar link_url
+        varchar related_type
+        int related_id
+        datetime read_at
+        datetime created_at
     }
 ```
+
+## PK and FK Reference
+
+| Table | Primary Key | Foreign Keys |
+| --- | --- | --- |
+| `roles` | `id` | None |
+| `users` | `id` | `role_id` -> `roles.id`; `role` -> `roles.name` |
+| `categories` | `id` | None |
+| `suppliers` | `id` | None |
+| `products` | `id` | `category_id` -> `categories.id`; `supplier_id` -> `suppliers.id` |
+| `sales` | `id` | `cashier_id` -> `users.id`; `user_id` -> `users.id`; `product_id` -> `products.id` |
+| `sale_items` | `id` | `sale_id` -> `sales.id`; `product_id` -> `products.id` |
+| `payments` | `id` | `sale_id` -> `sales.id` |
+| `receipts` | `id` | `sale_id` -> `sales.id` |
+| `inventory_logs` | `id` | `product_id` -> `products.id`; `created_by` -> `users.id` |
+| `closing_reports` | `id` | `cashier_id` -> `users.id`; `closed_by` -> `users.id`; `reviewed_by` -> `users.id` |
+| `admin_notifications` | `id` | None. `related_type` and `related_id` are a generic pointer, not an enforced FK. |
+
+## Transfer Safety
+
+The ERD structure is safe to transfer to another laptop because the table definitions and foreign keys live in the migration/database files. The phpMyAdmin Designer box arrangement is stored separately in `database/phpmyadmin_designer_layout.sql`.
+
+After moving the project, open the system once to create the database, then import `database/phpmyadmin_designer_layout.sql` into phpMyAdmin. Keep the database name as `cashieringinventorysystem`, or edit that SQL file to match the new database name before importing.
 
 ## Cardinality
 

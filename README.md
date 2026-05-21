@@ -305,6 +305,30 @@ Password: admin123
 
 7. Create cashier accounts from `Admin > Users`.
 
+## ERD Transfer Safety
+
+The ERD table structure will not be ruined when the project is transferred to another laptop. The database schema is recreated by `App\Core\Database::migrate()` and the SQL files in `database/`.
+
+There are two ERD parts to preserve:
+
+- **Relationships and table structure**: preserved by the migration/database schema.
+- **phpMyAdmin Designer visual arrangement**: preserved by importing `database/phpmyadmin_designer_layout.sql`.
+
+To keep the same ERD arrangement on another laptop:
+
+1. Copy or clone the project.
+2. Start Apache/Nginx and MySQL.
+3. Open the system once in the browser so the database and tables are created.
+4. If you need the same records, export the old MySQL database and import it on the new laptop.
+5. In phpMyAdmin, make sure phpMyAdmin configuration storage is enabled.
+6. Import this file:
+
+```text
+database/phpmyadmin_designer_layout.sql
+```
+
+Important: keep the database name as `cashieringinventorysystem`. If the database is renamed, update the database name inside `database/phpmyadmin_designer_layout.sql` before importing it.
+
 ## External Frontend Dependencies
 
 The UI loads some frontend libraries from CDNs:
