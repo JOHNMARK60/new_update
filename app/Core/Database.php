@@ -11,6 +11,7 @@ class Database
 {
     private static ?PDO $pdo = null;
     private static ?mysqli $mysqli = null;
+    private static ?array $settings = null;
 
     public static function getConnection(): PDO
     {
@@ -39,7 +40,7 @@ class Database
             ]);
         } catch (PDOException $e) {
             error_log('PDO connection failed: ' . $e->getMessage());
-            die('Database connection failed. Please contact the administrator.');
+            die(self::connectionFailureMessage());
         }
 
         return self::$pdo;
@@ -55,7 +56,7 @@ class Database
 
         if (!$mysqli) {
             error_log('Database server connection failed: ' . \mysqli_connect_error());
-            die('Database connection failed. Please contact the administrator.');
+            die(self::connectionFailureMessage());
         }
 
         \mysqli_set_charset($mysqli, 'utf8mb4');
@@ -649,21 +650,70 @@ class Database
 
     private static function host(): string
     {
-        return getenv('DB_HOST') ?: 'localhost';
+        return (string) self::settings()['host'];
     }
 
     private static function user(): string
     {
-        return getenv('DB_USER') ?: 'root';
+        return (string) self::settings()['user'];
     }
 
     private static function password(): string
     {
-        return getenv('DB_PASS') ?: '';
+        return (string) self::settings()['password'];
     }
 
     private static function dbName(): string
     {
-        return getenv('DB_NAME') ?: 'cashieringinventorysystem';
+        return (string) self::settings()['name'];
+    }
+
+    private static function settings(): array
+    {
+        if (self::$settings !== null) {
+            return self::$settings;
+        }
+
+        $settings = [
+            'host' => 'localhost',
+            'user' => 'root',
+            'password' => '',
+            'name' => 'cashieringinventorysystem',
+        ];
+
+        $localConfigPath = dirname(__DIR__, 2) . '/config/database.local.php';
+        if (is_file($localConfigPath)) {
+            $localSettings = require $localConfigPath;
+            if (is_array($localSettings)) {
+                foreach (array_keys($settings) as $key) {
+                    if (array_key_exists($key, $localSettings)) {
+                        $settings[$key] = (string) $localSettings[$key];
+                    }
+                }
+            }
+        }
+
+        $envMap = [
+            'DB_HOST' => 'host',
+            'DB_USER' => 'user',
+            'DB_PASS' => 'password',
+            'DB_NAME' => 'name',
+        ];
+
+        foreach ($envMap as $envName => $settingName) {
+            $value = getenv($envName);
+            if ($value !== false) {
+                $settings[$settingName] = (string) $value;
+            }
+        }
+
+        self::$settings = $settings;
+
+        return self::$settings;
+    }
+
+    private static function connectionFailureMessage(): string
+    {
+        return 'Database connection failed. Make sure MySQL is running and check the settings in config/database.local.php.';
     }
 }

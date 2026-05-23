@@ -290,20 +290,47 @@ C:\laragon\www\CashieringInventorySystem
 ```
 
 4. Start Apache/Nginx and MySQL in Laragon or your local server.
-5. Open the project in the browser:
+5. If your MySQL username, password, host, or database name is different from the defaults, copy the example config:
+
+```text
+config/database.example.php -> config/database.local.php
+```
+
+Then edit `config/database.local.php` for that device. Example for a default Laragon/XAMPP install:
+
+```php
+<?php
+declare(strict_types=1);
+
+return [
+    'host' => 'localhost',
+    'user' => 'root',
+    'password' => '',
+    'name' => 'cashieringinventorysystem',
+];
+```
+
+6. Open the project in the browser:
 
 ```text
 http://localhost/CashieringInventorySystem/
 ```
 
-6. Log in with the default admin account:
+7. Log in with the default admin account:
 
 ```text
 Email: admin@system.local
 Password: admin123
 ```
 
-7. Create cashier accounts from `Admin > Users`.
+8. Create cashier accounts from `Admin > Users`.
+
+If the browser shows `Database connection failed`, check these items on the new device:
+
+- MySQL/MariaDB is started.
+- PHP has `pdo_mysql` enabled.
+- `config/database.local.php` matches the MySQL username and password on that device.
+- The MySQL user can create or access the `cashieringinventorysystem` database.
 
 ## ERD Transfer Safety
 
@@ -318,10 +345,11 @@ To keep the same ERD arrangement on another laptop:
 
 1. Copy or clone the project.
 2. Start Apache/Nginx and MySQL.
-3. Open the system once in the browser so the database and tables are created.
-4. If you need the same records, export the old MySQL database and import it on the new laptop.
-5. In phpMyAdmin, make sure phpMyAdmin configuration storage is enabled.
-6. Import this file:
+3. Create `config/database.local.php` from `config/database.example.php` if the new laptop has different MySQL credentials.
+4. Open the system once in the browser so the database and tables are created.
+5. If you need the same records, export the old MySQL database and import it on the new laptop.
+6. In phpMyAdmin, make sure phpMyAdmin configuration storage is enabled.
+7. Import this file:
 
 ```text
 database/phpmyadmin_designer_layout.sql
