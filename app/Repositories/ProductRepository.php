@@ -18,7 +18,9 @@ class ProductRepository extends BaseRepository
              LEFT JOIN categories c ON c.id = p.category_id
              LEFT JOIN suppliers s ON s.id = p.supplier_id
              WHERE p.quantity > 0
-             ORDER BY p.name ASC"
+             ORDER BY CASE WHEN c.name IS NULL OR c.name = '' THEN 1 ELSE 0 END ASC,
+                      c.name ASC,
+                      p.name ASC"
         );
 
         return $stmt->fetchAll();
@@ -46,7 +48,10 @@ class ProductRepository extends BaseRepository
              LEFT JOIN categories c ON c.id = p.category_id
              LEFT JOIN suppliers s ON s.id = p.supplier_id
              {$where}
-             ORDER BY p.id DESC"
+             ORDER BY CASE WHEN c.name IS NULL OR c.name = '' THEN 1 ELSE 0 END ASC,
+                      c.name ASC,
+                      p.name ASC,
+                      p.id ASC"
         );
         $stmt->execute($params);
 

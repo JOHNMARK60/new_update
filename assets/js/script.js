@@ -435,6 +435,95 @@
     });
   }
 
+  function initInventoryBrowsers() {
+    const browsers = Array.from(document.querySelectorAll('[data-inventory-browser]'));
+
+    if (!browsers.length) {
+      return;
+    }
+
+    const searchInput = document.querySelector('.app-header-search input[name="search"], .app-header-search input[type="search"]');
+    const normalize = (value) => String(value || '').trim().toLowerCase();
+
+    browsers.forEach((browser) => {
+      const controls = browser.querySelector('[data-inventory-controls]');
+      const sections = Array.from(browser.querySelectorAll('[data-category-section]'));
+      const emptyState = browser.querySelector('[data-inventory-empty]');
+      let activeType = 'all';
+      let activeValue = '';
+
+      const activeButton = controls?.querySelector('[data-inventory-filter].is-active, [data-inventory-filter].rf-chip-active');
+      if (activeButton) {
+        activeType = activeButton.dataset.filterType || 'all';
+        activeValue = activeButton.dataset.filterValue || '';
+      }
+
+      const rowMatchesFilter = (row, section) => {
+        if (activeType === 'all') {
+          return true;
+        }
+
+        if (activeType === 'category') {
+          return String(section.dataset.category || '') === activeValue;
+        }
+
+        if (activeType === 'status') {
+          return String(row.dataset.status || '') === activeValue;
+        }
+
+        return true;
+      };
+
+      const applyFilters = () => {
+        const query = normalize(searchInput?.value || '');
+        let visibleRows = 0;
+
+        sections.forEach((section) => {
+          let visibleRowsInSection = 0;
+          const rows = Array.from(section.querySelectorAll('[data-product-row]'));
+
+          rows.forEach((row) => {
+            const matchesSearch = query === '' || normalize(row.dataset.search || '').includes(query);
+            const isVisible = matchesSearch && rowMatchesFilter(row, section);
+
+            row.classList.toggle('hidden', !isVisible);
+
+            if (isVisible) {
+              visibleRowsInSection++;
+              visibleRows++;
+            }
+          });
+
+          section.classList.toggle('hidden', visibleRowsInSection === 0);
+        });
+
+        emptyState?.classList.toggle('hidden', visibleRows > 0);
+      };
+
+      browser.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-inventory-filter]');
+
+        if (!button || !browser.contains(button)) {
+          return;
+        }
+
+        activeType = button.dataset.filterType || 'all';
+        activeValue = button.dataset.filterValue || '';
+
+        browser.querySelectorAll('[data-inventory-filter]').forEach((item) => {
+          const isActive = item === button;
+          item.classList.toggle('is-active', isActive);
+          item.classList.toggle('rf-chip-active', isActive);
+        });
+
+        applyFilters();
+      });
+
+      searchInput?.addEventListener('input', applyFilters);
+      applyFilters();
+    });
+  }
+
   function initConfirmations() {
     document.addEventListener('click', (event) => {
       const logoutLink = event.target.closest('[data-logout]');
@@ -573,6 +662,7 @@
     initLoginForm();
     initPasswordToggles();
     initCategorySelects();
+    initInventoryBrowsers();
     initProfileDropdowns();
     initMobileSidebars();
     initFormValidation();
