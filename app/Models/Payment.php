@@ -1,36 +1,17 @@
 <?php
-declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Contracts\PaymentInterface;
-use App\Core\AbstractModel;
+use Illuminate\Database\Eloquent\Model;
 
-class Payment extends AbstractModel implements PaymentInterface
+class Payment extends Model
 {
-    public function getAmount(): float
-    {
-        return round((float) $this->get('amount', 0), 2);
-    }
+    public $timestamps = false;
 
-    public function getTenderedAmount(): float
-    {
-        return round((float) $this->get('tendered_amount', 0), 2);
-    }
+    protected $fillable = ['sale_id', 'amount', 'tendered_amount', 'change_amount', 'currency', 'payment_method', 'payment_date'];
 
-    public function getChangeAmount(): float
+    protected function casts(): array
     {
-        return round(max($this->getTenderedAmount() - $this->getAmount(), 0), 2);
-    }
-
-    public function getMethod(): string
-    {
-        return (string) $this->get('payment_method', 'cash');
-    }
-
-    public function isSufficient(): bool
-    {
-        return $this->getTenderedAmount() >= $this->getAmount();
+        return ['payment_date' => 'datetime'];
     }
 }
-

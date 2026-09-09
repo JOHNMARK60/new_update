@@ -1,42 +1,31 @@
 <?php
-declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Core\AbstractModel;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Product extends AbstractModel
+class Product extends Model
 {
-    public function getId(): int
+    protected $fillable = ['name', 'sku', 'category_id', 'supplier_id', 'price', 'quantity', 'low_stock_level', 'expiration_date', 'image_path'];
+
+    protected function casts(): array
     {
-        return (int) $this->get('id');
+        return ['price' => 'decimal:2', 'expiration_date' => 'date'];
     }
 
-    public function getName(): string
+    public function category(): BelongsTo
     {
-        return (string) $this->get('name');
+        return $this->belongsTo(Category::class);
     }
 
-    public function getPrice(): float
+    public function supplier(): BelongsTo
     {
-        return (float) $this->get('price');
+        return $this->belongsTo(Supplier::class);
     }
 
-    public function getQuantity(): int
+    public function getIsLowStockAttribute(): bool
     {
-        return (int) $this->get('quantity');
-    }
-
-    public function getLowStockLevel(): int
-    {
-        return (int) $this->get('low_stock_level', 5);
-    }
-
-    public function isLowStock(): bool
-    {
-        $quantity = $this->getQuantity();
-
-        return $quantity > 0 && $quantity <= $this->getLowStockLevel();
+        return $this->quantity <= $this->low_stock_level;
     }
 }
-

@@ -1,30 +1,38 @@
 <?php
-declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Core\AbstractModel;
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 
-class User extends AbstractModel
+class User extends Authenticatable
 {
-    public function getId(): int
+    use HasFactory, Notifiable;
+
+    protected $fillable = ['first_name', 'last_name', 'email', 'phone', 'password', 'role', 'status', 'reset_token', 'token_expires_at'];
+
+    protected $hidden = ['password', 'remember_token', 'reset_token'];
+
+    protected function casts(): array
     {
-        return (int) $this->get('id');
+        return ['password' => 'hashed', 'token_expires_at' => 'datetime'];
     }
 
-    public function getFullName(): string
+    public function getNameAttribute(): string
     {
-        return trim((string) $this->get('first_name') . ' ' . (string) $this->get('last_name'));
+        return trim("{$this->first_name} {$this->last_name}");
     }
 
-    public function getRole(): string
+    public function sales(): HasMany
     {
-        return (string) $this->get('role', 'cashier');
+        return $this->hasMany(Sale::class, 'cashier_id');
     }
 
-    public function can(string $permission): bool
+    public function isAdmin(): bool
     {
-        return $this->getRole() === 'admin' || in_array($permission, ['process_sale', 'print_receipt', 'view_own_reports', 'close_own_day'], true);
+        return $this->role === 'admin';
     }
 }
-

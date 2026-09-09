@@ -1,4 +1,0 @@
-Default admin login:
-
-Username/email: admin@system.local
-Password: admin123

@@ -1,35 +1,23 @@
 <?php
-declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Core\AbstractModel;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class SaleItem extends AbstractModel
+class SaleItem extends Model
 {
-    public function getProductId(): int
+    public $timestamps = false;
+
+    protected $fillable = ['sale_id', 'product_id', 'product_name', 'quantity', 'unit_price', 'total_price'];
+
+    protected function casts(): array
     {
-        return (int) $this->get('product_id');
+        return ['unit_price' => 'decimal:2', 'total_price' => 'decimal:2'];
     }
 
-    public function getProductName(): string
+    public function product(): BelongsTo
     {
-        return (string) $this->get('product_name');
-    }
-
-    public function getQuantity(): int
-    {
-        return (int) $this->get('quantity');
-    }
-
-    public function getUnitPrice(): float
-    {
-        return (float) $this->get('unit_price');
-    }
-
-    public function getTotalPrice(): float
-    {
-        return round($this->getUnitPrice() * $this->getQuantity(), 2);
+        return $this->belongsTo(Product::class);
     }
 }
-

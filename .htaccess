@@ -1,0 +1,5 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^$ /CashieringInventorySystem/public/ [R=302,L]
+    RewriteRule ^((?!public/).*)$ /CashieringInventorySystem/public/$1 [R=302,L]
+</IfModule>
